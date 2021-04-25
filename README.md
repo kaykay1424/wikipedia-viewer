@@ -1,0 +1,2 @@
+# Wikipedia Viewer
+The Wikipedia Viewer allows users to search for a Wikipedia article and choose the amount of articles to be returned. Users can bookmark an article to read later or favorite an article, which will then be stored in the browser's local storage.
