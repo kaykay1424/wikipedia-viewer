@@ -60,9 +60,17 @@ $(document).ready(function() {
 	
 	let favorites = JSON.parse(localStorage.getItem('favorites'));
 	
-	if (favorites !== null) {
+	if (favorites !== null && favorites.length > 0) {
 		
-		fetchFavorites();
+		fetchSavedArticles('favorites');
+	
+	}
+
+	let bookmarks = JSON.parse(localStorage.getItem('bookmarks'));
+	
+	if (bookmarks !== null && bookmarks.length > 0) {
+		
+		fetchSavedArticles('bookmarks');
 	
 	}
 	
@@ -119,7 +127,7 @@ $(document).ready(function() {
 			dataType: "jsonp",
 			
 			success: function(responses) {
-				console.log(responses)
+
 				let searchTitle = responses.query.random[0].title;
 				
 				// get info from 1 random article 
@@ -318,57 +326,29 @@ $(document).ready(function() {
 		
 		if (intro.length === 0 ) {
 			
-			let intro = 'N/A';
+			intro = 'N/A';
 			
 		}
 		
-		$('<div class="title-div"><h3><a href="'+URL+'" target="_blank">' + title + '</a></h3><p><strong>Brief Intro:</strong></p><p>'+ intro + '</p> </div>').append('<i>Favorite article:</i> <span class="glyphicon glyphicon-star" onclick="saveFavorites(\'' + title + '\',\'' + URL + '\')" ></span> <i>Read article later:</i> <span class="glyphicon glyphicon-bookmark"></span>').on('click', '.glyphicon-bookmark',function() {
-		
-			let matchingArticlesLength = $('.bookmarks-li:contains('+title+')').length;
+		$('<div class="title-div"><h3><a href="'+URL+'" target="_blank">' + title + '</a></h3><p><strong>Brief Intro:</strong></p><p>'+ intro + '</p> </div>')
 			
-			if ( matchingArticlesLength !== 0 ) {
+			.append(`<i>Favorite article:</i> <span class="glyphicon glyphicon-star"></span> <i>Read article later:</i> <span class="glyphicon glyphicon-bookmark"></span>`)
 			
-				alert('This article has already been bookmarked.');
+			.on('click', '.glyphicon', function() {
 				
-				return false;
-				
-			}
+				const list = $(this).hasClass('glyphicon-bookmark') ? 'bookmarks': 'favorites';
+				 
+				saveArticle(title, URL, list);
 			
-			let bookmarksLi = $('<li class="bookmarks-li" ><span><a href="'+URL+'" target="_blank">' + title + '</a> <span class="glyphicon glyphicon-star" onclick="saveFavorites(\'' + title + '\',\'' + URL + '\')"></span> <span class="delete glyphicon glyphicon-remove"> </span></li>');
-			
-			bookmarksLi.on('click', '.delete', function() {
-			
-                bookmarksLi.remove();
-            
-                bookmarkArticleCounter--;
-            
-                $('#bookmarks-amount').html(bookmarkArticleCounter);
-            
-                // if there are no more bookmarks (articles in read later category)
-            
-                if (bookmarkArticleCounter < 1) {
-            
-                    $('#bookmarks-bar').hide();
-                
-                }
-            
-            }).appendTo('#bookmarks-storage-ul');
-
-            bookmarkArticleCounter++;
-        
-            $('#bookmarks-amount').html(bookmarkArticleCounter);
-        
-            $('#bookmarks-bar').show();
-		
-		}).appendTo('#article-list');
+			}).appendTo('#article-list');
 	
 	} // end of displayArticle()
 
 	}); // end of document ready 
 	
-	function saveFavorites(articleTitle, URL) {
-	
-		let favorite = {
+	function saveArticle(articleTitle, URL, list) {
+
+		let newArticle = {
 		
 			title: articleTitle,
 			
@@ -376,85 +356,93 @@ $(document).ready(function() {
 			
 		}
 		
-		if (localStorage.getItem('favorites') !== null) {
+		if (localStorage.getItem(list) !== null) {
 		
-			let favorites = JSON.parse(localStorage.getItem('favorites'));
+			let articles = JSON.parse(localStorage.getItem(list));
 			
-			for (let i = 0; i < favorites.length; i++) {
+			for (let i = 0; i < articles.length; i++) {
 			
-				let name = favorites[i].title;
+				let name = articles[i].title;
 				
-				let url = favorites[i].url;
+				let url = articles[i].url;
 
 				if (articleTitle === name) {
 				
-					alert('This article has already been favorited.');
+					alert(`This article is already in your ${list}.`);
 					
 					return false;
 					
 				}
 	
 			} // end of for loop
+
+			articles.push(newArticle);
+			
+			localStorage.setItem(list, JSON.stringify(articles));
 			
 		} // end of if localStorage.getItem('favorites') !== null
 		
-		else if (localStorage.getItem('favorites') === null) {
+		else if (localStorage.getItem(list) === null) {
 		
-			let favorites = [];
+			let articles = [];
 			
-			favorites.push(favorite);
+			articles.push(newArticle);
 			
-			localStorage.setItem('favorites', JSON.stringify(favorites));
+			localStorage.setItem(list, JSON.stringify(articles));
 			
 		} 
 		
 		else {
 		
-			let favorites = JSON.parse(localStorage.getItem('favorites'));
+			let articles = JSON.parse(localStorage.getItem(list));
 			
-			favorites.push(favorite);
+			articles.push(newArticle);
 			
-			localStorage.setItem('favorites', JSON.stringify(favorites));
+			localStorage.setItem(list, JSON.stringify(articles));
 			
 		}
 		
-		fetchFavorites();
+		fetchSavedArticles(list);
 
-	} // end of saveFavorites()
+	} // end of saveArticle()
 	
-	function deleteFavorites(url) {
-	
-		let favorites = JSON.parse(localStorage.getItem('favorites'));
+	function deleteSavedArticle(url, list) {
+
+		let articles = JSON.parse(localStorage.getItem(list));
 		
-		for (let i = 0; i < favorites.length; i++) {
+		let newArticles = [...articles]; 
+
+		for (let i = 0; i < articles.length; i++) {
 		
-			if (favorites[i].url === url) {
+			if (articles[i].url === url) {
 			
-			    favorites.splice(i,1);
+				newArticles.splice(i,1);
+
+				break;
 			
 			}
 			
 		} // end of for loop
 
-		localStorage.setItem('favorites', JSON.stringify(favorites));
+		localStorage.setItem(list, JSON.stringify(newArticles));
 		
-		fetchFavorites();
+		fetchSavedArticles(list);
 
-	} // end of deleteFavorites()
+	} // end of deleteSavedArticle()
 	
-	function fetchFavorites() {
+	function fetchSavedArticles(list) {
 	
-		let favoritesStorageUl = document.getElementById('favorites-storage-ul');
+		let storageUL = document.getElementById(`${list}-storage-ul`);
 		
-		favoritesStorageUl.innerHTML = '';
+		storageUL.innerHTML = '';
 		
-		let favorites = JSON.parse(localStorage.getItem('favorites'));
+		let articles = JSON.parse(localStorage.getItem(list));
 		
 		// if there are no more favorites (articles in favorites category)
+
+		if (articles.length < 1) {
 		
-		if (favorites.length < 1) {
-		
-			$('#favorites-bar').hide();
+			$(`#${list}-bar`).hide();
 			
 		}
 		
@@ -462,20 +450,37 @@ $(document).ready(function() {
 		
 		else {
 		
-			$('#favorites-bar').show();
+			$(`#${list}-bar`).show();
 			
 		}
 		
-		for (let i = 0; i < favorites.length; i++) {
+		for (let i = 0; i < articles.length; i++) {
 		
-			let name = favorites[i].title;
+			let name = articles[i].title;
 			
-			let url = favorites[i].url;
+			let url = articles[i].url;
 
-			$('#favorites-amount').html(favorites.length);
+			$(`#${list}-amount`).html(articles.length);
 			
-			favoritesStorageUl.innerHTML += '<li class="favorites-li" ><a href="'+url+'" target="_blank">' + name + '</a> <span  class="delete-favorites glyphicon glyphicon-remove" onclick="deleteFavorites(\'' + url + '\')" > </span></li>';
+			storageUL.innerHTML += `<li class="${list}-li" ><a href="${url}" target="_blank">${name}</a>`; 
+			
+			list === 'favorites' ? storageUL.innerHTML += ` <span class="glyphicon glyphicon-bookmark"> </span>`: storageUL.innerHTML += ` <span class="glyphicon glyphicon-star"> </span>`
+			
+			storageUL.innerHTML += ` <span  class="delete-${list} glyphicon glyphicon-remove" > </span></li>`;
 	
+			$(storageUL).find('.glyphicon-remove').click(function() {
+
+				deleteSavedArticle(url, list)
+			
+			});
+
+			$(storageUL).find('.glyphicon:not(.glyphicon-remove)').click(function() {
+				
+				const list = $(this).hasClass('glyphicon-bookmark') ? 'bookmarks': 'favorites';
+
+				saveArticle(name, url, list);
+			
+			});
 		} // end of for loop
 		
-	} // end of deleteFavorites()
+	} // end of deleteSavedArticle()
